@@ -4,10 +4,12 @@ from urllib3.util.retry import Retry
 import xml.etree.ElementTree as ET
 import source_helper
 import tkinter as tk
+from tkinter import simpledialog
 
-version = 1.0
+version = 1.1
+prog = "TransitTracker"
 
-print(f"Welcome to TransitTracker version {version}")
+print(f"Welcome to {prog} version {version}")
 
 def _create_http_session():
     session = requests.Session()
@@ -31,8 +33,7 @@ def http_get(url, **kwargs):
     timeout = kwargs.pop("timeout", 10)
     return _HTTP_SESSION.get(url, timeout=timeout, **kwargs)
 
-def stopSearch():
-    search = input("Search for stop: ")
+def http_stop_search(search):
 
     response = http_get(f"https://api.winnipegtransit.com/v4/stops:{search}?api-key={source_helper.api_key}")
 
@@ -73,8 +74,7 @@ def stopSearch():
             print(f"Lat: {lat_text} Long: {lon_text}")
             input("Press Enter to list next stop... ")
 
-def busTimer():
-    stopToGet = input("Stop number (ex. 10758)? ")
+def busTimer(stopToGet):
     response = http_get(f"https://api.winnipegtransit.com/v4/stops/{stopToGet}/schedule?api-key={source_helper.api_key}")
 
     response.raise_for_status()
@@ -173,7 +173,41 @@ def busTimer():
                 print("  No scheduled stops found")
         else:
             print("No route information found")
+class App:
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.geometry("")
+        self.root.title(f"{prog}")
 
-root = tk.Tk()
-root.geometry("")
-root.title("TransitTracker")
+        self.root.withdraw()
+
+        self.startWindow = tk.Toplevel(self.root)
+
+        self.stopSearchButton = tk.Button(self.startWindow, text="Stop Search",
+                    command=self.stopSearch,
+                )
+        self.stopSearchButton.pack(pady=5)
+        self.busSearchButton = tk.Button(self.startWindow, text="Bus Schedule",
+            command=self.busSchedule,
+        )
+        self.busSearchButton.pack(pady=5)
+
+    def stopSearch(self):
+        self.root.deiconify()
+        value = simpledialog.askstring("Stop Search", "Enter stop number or query:", parent=self.root)
+        if value is None or value.strip() == "":
+            return
+        http_stop_search(value.strip())
+    def busSchedule(self):
+        self.root.deiconify()
+        value = simpledialog.askstring("Bus Schedule", "Enter stop number to see schedule: ", parent=self.root)
+        if value is None or value.strip() == "":
+            return
+        busTimer(value.strip())
+
+    def run(self):
+        self.root.mainloop()
+
+if __name__ == "__main__":
+    app = App()
+    app.run()
