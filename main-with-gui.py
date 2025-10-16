@@ -74,7 +74,7 @@ def http_stop_search(search):
             print(f"Lat: {lat_text} Long: {lon_text}")
             input("Press Enter to list next stop... ")
 
-def busTimer(stopToGet):
+def busTimer(self, stopToGet):
     response = http_get(f"https://api.winnipegtransit.com/v4/stops/{stopToGet}/schedule?api-key={source_helper.api_key}")
 
     response.raise_for_status()
@@ -126,10 +126,10 @@ def busTimer(stopToGet):
         if route is not None:
             route_key = route.find("key")
             route_name = route.find("name")
-            route_key_text = route_key.text if route_key is not None else "N/A"
+            self.route_key_text = route_key.text if route_key is not None else "N/A"
             route_name_text = route_name.text if route_name is not None else "N/A"
             
-            print(f"Route: {route_key_text} - {route_name_text}")
+            print(f"Route: {self.route_key_text} - {self.route_name_text}")
             
             # Get scheduled stops (not "schedule" - it's "scheduled-stops")
             scheduled_stops = route_schedule.find("scheduled-stops")
@@ -138,7 +138,7 @@ def busTimer(stopToGet):
                 for stop in stops:
                     stop_key = stop.find("key")
                     trip_key = stop.find("trip-key")
-                    stop_key_text = stop_key.text if stop_key is not None else "N/A"
+                    self.stop_key_text = stop_key.text if stop_key is not None else "N/A"
                     trip_key_text = trip_key.text if trip_key is not None else "N/A"
                     
                     # Get times
@@ -150,10 +150,10 @@ def busTimer(stopToGet):
                         if arrival is not None:
                             arrival_scheduled = arrival.find("scheduled")
                             arrival_estimated = arrival.find("estimated")
-                            arrival_sched_text = arrival_scheduled.text if arrival_scheduled is not None else "N/A"
-                            arrival_est_text = arrival_estimated.text if arrival_estimated is not None else "N/A"
+                            self.arrival_sched_text = arrival_scheduled.text if arrival_scheduled is not None else "N/A"
+                            self.arrival_est_text = arrival_estimated.text if arrival_estimated is not None else "N/A"
                         else:
-                            arrival_sched_text = arrival_est_text = "N/A"
+                            self.arrival_sched_text = self.arrival_est_text = "N/A"
                             
                         if departure is not None:
                             departure_scheduled = departure.find("scheduled")
@@ -163,11 +163,11 @@ def busTimer(stopToGet):
                         else:
                             departure_sched_text = departure_est_text = "N/A"
                         
-                        print(f"  Stop: {stop_key_text} (Trip: {trip_key_text})")
-                        print(f"    Arrival: {arrival_sched_text} (est: {arrival_est_text})")
+                        print(f"  Stop: {self.self.stop_key_text} (Trip: {trip_key_text})")
+                        print(f"    Arrival: {self.arrival_sched_text} (est: {self.arrival_est_text})")
                         print(f"    Departure: {departure_sched_text} (est: {departure_est_text})")
                     else:
-                        print(f"  Stop: {stop_key_text} (Trip: {trip_key_text}) - no times")
+                        print(f"  Stop: {self.stop_key_text} (Trip: {trip_key_text}) - no times")
                 print()
             else:
                 print("  No scheduled stops found")
@@ -192,6 +192,21 @@ class App:
         )
         self.busSearchButton.pack(pady=5)
 
+        # StringVars for showing values in the UI (initialize properly)
+        self.route_var = tk.StringVar(self.root)
+        self.stop_var = tk.StringVar(self.root)
+        self.arrival_var = tk.StringVar(self.root)
+        self.arrival_est_var = tk.StringVar(self.root)
+        self.departure_var = tk.StringVar(self.root)
+        self.departure_est_var = tk.StringVar(self.root)
+
+        self.route_var = tk.StringVar
+        self.stop_var = tk.StringVar
+        self.arrival_var = tk.StringVar
+        self.arrival_est_var = tk.StringVar
+        self.departure_var = tk.StringVar
+        self.departure_est_var = tk.StringVar
+
     def stopSearch(self):
         self.root.deiconify()
         value = simpledialog.askstring("Stop Search", "Enter stop number or query:", parent=self.root)
@@ -203,7 +218,123 @@ class App:
         value = simpledialog.askstring("Bus Schedule", "Enter stop number to see schedule: ", parent=self.root)
         if value is None or value.strip() == "":
             return
-        busTimer(value.strip())
+        self.busTimer(value.strip())
+
+    def busTimer(self, stopToGet):
+        response = http_get(f"https://api.winnipegtransit.com/v4/stops/{stopToGet}/schedule?api-key={source_helper.api_key}")
+
+        response.raise_for_status()
+
+        root_xml = ET.fromstring(response.text)
+
+        stop = root_xml.find('stop')
+        if stop is None:
+            print("No stop found")
+            return
+
+        stop_name = stop.find("name")
+        self.stop_name_text = stop_name.text if stop_name is not None else "N/A"
+
+        direction = stop.find("direction")
+        self.direction_text = direction.text if direction is not None else "N/A"
+
+        street = stop.find("street")
+        street_name = street.find("name") if street is not None else None
+        self.street_text = street_name.text if street_name is not None else "N/A"
+
+        cross_street = stop.find("cross-street")
+        cross_street_name = cross_street.find("name") if cross_street is not None else None
+        self.cross_street_text = cross_street_name.text if cross_street_name is not None else "N/A"
+
+        print(f"Stop: {self.stop_name_text}")
+        print(f"Direction: {self.direction_text}")
+        print(f"Street: {self.street_text}")
+        print(f"Cross Street: {self.cross_street_text}")
+        print("-" * 50)
+
+        route_schedules_container = root_xml.find("route-schedules")
+        if route_schedules_container is None:
+            print("No route schedules found")
+            return
+
+        route_schedules = route_schedules_container.findall("route-schedule")
+        for route_schedule in route_schedules:
+            route = route_schedule.find("route")
+            if route is not None:
+                route_key = route.find("key")
+                route_name = route.find("name")
+                self.route_key_text = route_key.text if route_key is not None else "N/A"
+                self.route_name_text = route_name.text if route_name is not None else "N/A"
+
+                print(f"Route: {self.route_key_text} - {self.route_name_text}")
+
+                scheduled_stops = route_schedule.find("scheduled-stops")
+                if scheduled_stops is not None:
+                    stops = scheduled_stops.findall("scheduled-stop")
+                    for scheduled_stop in stops:
+                        stop_key = scheduled_stop.find("key")
+                        trip_key = scheduled_stop.find("trip-key")
+                        self.stop_key_text = stop_key.text if stop_key is not None else "N/A"
+                        trip_key_text = trip_key.text if trip_key is not None else "N/A"
+
+                        times = scheduled_stop.find("times")
+                        if times is not None:
+                            arrival = times.find("arrival")
+                            departure = times.find("departure")
+
+                            if arrival is not None:
+                                arrival_scheduled = arrival.find("scheduled")
+                                arrival_estimated = arrival.find("estimated")
+                                self.arrival_sched_text = arrival_scheduled.text if arrival_scheduled is not None else "N/A"
+                                self.arrival_est_text = arrival_estimated.text if arrival_estimated is not None else "N/A"
+                            else:
+                                self.arrival_sched_text = "N/A"
+                                self.arrival_est_text = "N/A"
+
+                            if departure is not None:
+                                departure_scheduled = departure.find("scheduled")
+                                departure_estimated = departure.find("estimated")
+                                self.departure_sched_text = departure_scheduled.text if departure_scheduled is not None else "N/A"
+                                self.departure_est_text = departure_estimated.text if departure_estimated is not None else "N/A"
+                            else:
+                                self.departure_sched_text = "N/A"
+                                self.departure_est_text = "N/A"
+
+                            print(f"  Stop: {self.stop_key_text} (Trip: {trip_key_text})")
+                            print(f"    Arrival: {self.arrival_sched_text} (est: {self.arrival_est_text})")
+                            print(f"    Departure: {self.departure_sched_text} (est: {self.departure_est_text})")
+                        else:
+                            print(f"  Stop: {self.stop_key_text} (Trip: {trip_key_text}) - no times")
+                    print()
+                else:
+                    print("  No scheduled stops found")
+            else:
+                print("No route information found")
+
+        # Optionally update bound variables for UI
+        self.valuesToScreen()
+
+    def valuesToScreen(self):
+        # Safely set values if they exist
+        if hasattr(self, 'route_name_text'):
+            self.route_var.set(self.route_name_text)
+        if hasattr(self, 'stop_key_text'):
+            self.stop_var.set(self.stop_key_text)
+        if hasattr(self, 'arrival_sched_text'):
+            self.arrival_var.set(self.arrival_sched_text)
+        if hasattr(self, 'arrival_est_text'):
+            self.arrival_est_var.set(self.arrival_est_text)
+        if hasattr(self, 'departure_sched_text'):
+            self.departure_var.set(self.departure_sched_text)
+        if hasattr(self, 'departure_est_text'):
+            self.departure_est_var.set(self.departure_est_text)
+    def valuesToScreen(self):
+        self.route_var.set(self.route_name_text)
+        self.stop_var.set(self.stop_key_text)
+        self.arrival_var.set(self.arrival_sched_text)
+        self.arrival_est_var.set(self.arrival_est_text)
+        self.departure_var.set()
+        self.departure_est_var.set()
 
     def run(self):
         self.root.mainloop()
