@@ -176,11 +176,9 @@ def busTimer(self, stopToGet):
 class App:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.geometry("")
+        self.root.geometry("400x400")
         self.root.title(f"{prog}")
-
-        self.root.withdraw()
-
+        
         self.startWindow = tk.Toplevel(self.root)
 
         self.stopSearchButton = tk.Button(self.startWindow, text="Stop Search",
@@ -200,21 +198,18 @@ class App:
         self.departure_var = tk.StringVar(self.root)
         self.departure_est_var = tk.StringVar(self.root)
 
-        self.route_var = tk.StringVar
-        self.stop_var = tk.StringVar
-        self.arrival_var = tk.StringVar
-        self.arrival_est_var = tk.StringVar
-        self.departure_var = tk.StringVar
-        self.departure_est_var = tk.StringVar
+        self.route_label = tk.Label(self.root, textvariable=self.route_var,
+            fg="cyan", bg="black",
+            font=("Courier", 10), justify="left"
+        )
+        self.route_label.pack()
 
     def stopSearch(self):
-        self.root.deiconify()
         value = simpledialog.askstring("Stop Search", "Enter stop number or query:", parent=self.root)
         if value is None or value.strip() == "":
             return
         http_stop_search(value.strip())
     def busSchedule(self):
-        self.root.deiconify()
         value = simpledialog.askstring("Bus Schedule", "Enter stop number to see schedule: ", parent=self.root)
         if value is None or value.strip() == "":
             return
@@ -303,6 +298,7 @@ class App:
                             print(f"  Stop: {self.stop_key_text} (Trip: {trip_key_text})")
                             print(f"    Arrival: {self.arrival_sched_text} (est: {self.arrival_est_text})")
                             print(f"    Departure: {self.departure_sched_text} (est: {self.departure_est_text})")
+                            self.valuesToScreen()
                         else:
                             print(f"  Stop: {self.stop_key_text} (Trip: {trip_key_text}) - no times")
                     print()
@@ -328,13 +324,6 @@ class App:
             self.departure_var.set(self.departure_sched_text)
         if hasattr(self, 'departure_est_text'):
             self.departure_est_var.set(self.departure_est_text)
-    def valuesToScreen(self):
-        self.route_var.set(self.route_name_text)
-        self.stop_var.set(self.stop_key_text)
-        self.arrival_var.set(self.arrival_sched_text)
-        self.arrival_est_var.set(self.arrival_est_text)
-        self.departure_var.set()
-        self.departure_est_var.set()
 
     def run(self):
         self.root.mainloop()
